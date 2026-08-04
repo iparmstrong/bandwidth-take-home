@@ -1,0 +1,51 @@
+version: "3.7"
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    shm_size: 1g
+    environment:
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: windmill
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  windmill_server:
+    image: ghcr.io/windmill-labs/windmill:main
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgres://postgres:changeme@db/windmill?sslmode=disable
+      MODE: server
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - worker_logs:/tmp/windmill/logs
+  windmill_worker:
+    image: ghcr.io/windmill-labs/windmill:main
+    pull_policy: always
+    restart: unless-stopped
+    # Required so jobs can run in their own PID namespace.
+    privileged: true
+    environment:
+      DATABASE_URL: postgres://postgres:changeme@db/windmill?sslmode=disable
+      MODE: worker
+      WORKER_GROUP: default
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - worker_dependency_cache:/tmp/windmill/cache
+      - worker_logs:/tmp/windmill/logs
+
+volumes:
+  db_data:
+  worker_logs:
+  worker_dependency_cache:
