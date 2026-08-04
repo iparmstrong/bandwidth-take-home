@@ -34,6 +34,7 @@ This review evaluates the implementation of the `pvr_flow` against the requireme
 
 **Areas for Improvement / Design Feedback:**
 - **Dry Run Execution**: The author notes that they intentionally execute the stub during `dry_run` to exercise the retry logic. While acceptable for a test stub environment, in a production system, `dry_run` should completely bypass the block of code that performs external operations to guarantee safety if a real endpoint was ever swapped in. This is defensible given the assignment constraints, but worth noting as a potential production risk.
+- Added a second stub function to replicate if it was running in prod
 
 ## Problem 3: Write a CI Test
 

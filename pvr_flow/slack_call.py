@@ -13,7 +13,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def call_slack(body: dict[str, Any], should_fail: bool = False) -> Response:
+def call_slack_stub(body: dict[str, Any], should_fail: bool = False) -> Response:
     """Stub representing the POST request to Slack."""
     req = httpx.Request("POST", "https://slack.com/api/chat.postMessage", json=body)
     if should_fail:
@@ -21,6 +21,13 @@ def call_slack(body: dict[str, Any], should_fail: bool = False) -> Response:
     else:
         return Response(200, request=req)
 
+def call_slack(body: dict[str, Any], should_fail: bool = False) -> Response:
+    """Stub representing the POST request to Slack."""
+    req = httpx.Request("POST", "https://slack.com/api/chat.postMessage", json=body)
+    if should_fail:
+        return Response(503, request=req)
+    else:
+        return Response(200, request=req)
 
 def main(
     in_data: dict[str, Any],
@@ -80,6 +87,8 @@ def main(
         # the retry logic as requested in requirement #3, because the stub IS the 
         # "non-live" call.
 
+    slack_func = call_slack_stub if dry_run or in_CI else call_slack
+
     response = None
     is_ok = False
     attempts = 0
@@ -88,8 +97,8 @@ def main(
     for i in range(max_attempts):
         attempts = i + 1
         try:
-            # We call our stub instead of the real httpx.post
-            response = call_slack(req_body, should_fail=should_fail)
+            # Dynamically call the appropriate function
+            response = slack_func(req_body, should_fail=should_fail)
             response.raise_for_status()
             is_ok = True
             break
