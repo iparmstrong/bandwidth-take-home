@@ -16,7 +16,7 @@ This review evaluates the implementation of the `pvr_flow` against the requireme
 **Areas for Improvement / Bugs:**
 - **UTC Time Conversion**: In `clean_value()`, `datetime.fromtimestamp(v)` creates a datetime object in the local system timezone, not UTC. Appending a `"Z"` to a local ISO format string creates an incorrect timestamp. 
   *Fix:* Use `datetime.fromtimestamp(v, tz=timezone.utc)` to ensure the time is strictly UTC before formatting it.
-
+- note Fixed with suggestion (Ian Armstrong)
 ### pvr_flow.yaml (Routing & Classification)
 **Strengths:**
 - **Flow Structure**: Branching is logically laid out. Sending failed validations (`valid === false`) to a dedicated DLQ branch is a great architectural pattern.

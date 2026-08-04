@@ -41,7 +41,7 @@ class Payload(BaseModel):
     @classmethod
     def clean_value(cls, v: Any) -> str:
         if isinstance(v, int):
-            date_str = datetime.fromtimestamp(v).replace(microsecond=0).isoformat()
+            date_str = datetime.fromtimestamp(v, tz=timezone.utc).replace(microsecond=0).isoformat()
             return f"{date_str}Z"
         return v
 
