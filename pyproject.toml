@@ -1,0 +1,24 @@
+[project]
+name = "windmill-assesment"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.13.4",
+    "wmill>=1.778.0",
+    "google-cloud-aiplatform[adk,ag2,agent-engines,langchain]>=1.147.0",
+    "google-genai>=1.72.0",
+    "httpx>=0.28.1",
+    "mypy>=1.20.0",
+    "pydantic>=2.12.5",
+    "python-dotenv>=1.2.2",
+    "ruff>=0.15.10",
+    "openai>=2.53.0",
+    "markitdown[pdf]>=0.1.7",
+    "pypdf>=6.14.2",
+    "pdfminer-six>=20260107",
+    "pymupdf>=1.28.0",
+    "pymupdf4llm>=1.28.0",
+    "google-auth>=2.56.2",
+]
