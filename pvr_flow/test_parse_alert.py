@@ -17,5 +17,5 @@ def main():
 
     # TODO: Exercise at least one malformed-input case and assert your
     # Problem 1 script handles it the way you designed it to.
-    wmill.run_script_by_path("u/admin/parse_alert", VALID_PAYLOAD)
-    pass
+    result = wmill.run_script_by_path("u/admin/parse_alert", {"payload": VALID_PAYLOAD, "dry_run": True})
+    return result
