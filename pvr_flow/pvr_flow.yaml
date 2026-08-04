@@ -4,8 +4,9 @@ value:
   modules:
     - id: validated_message
       value:
-        type: script
         path: u/admin/parse_alert
+        type: script
+        is_trigger: false
         input_transforms:
           dry_run:
             type: static
@@ -13,8 +14,6 @@ value:
           payload:
             expr: flow_input
             type: javascript
-        is_trigger: false
-
       summary: Validatior
     - id: b
       value:
