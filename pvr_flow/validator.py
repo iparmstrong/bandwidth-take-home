@@ -2,9 +2,7 @@ import sys
 import logging
 from datetime import datetime, timezone
 from typing import Any, Literal
-from pydantic import BaseModel, ValidationError, field_validator
-from typing import Literal
-from datetime import datetime
+from pydantic import BaseModel, ValidationError, field_validator, Field
 import logging
 # You can import any PyPi package. 
 # See here for more info: https://www.windmill.dev/docs/advanced/dependencies_in_python
@@ -22,12 +20,22 @@ logger = logging.getLogger(__name__)
 
 
 class Payload(BaseModel):
-    alert_id: str
+    alert_id: str = Field(..., min_length=1)
     service: str
     severity: Literal["critical", "warning", "info"]
     message: str
     host: str
     triggered_at: str
+
+
+    @field_validator('severity', mode='before')
+    @classmethod
+    def fallback_severity(cls, v: Any) -> str:
+        # If it's not one of the allowed values, downgrade to info
+        if v not in {"critical", "warning", "info"}:
+            logger.warning(f"Unrecognized severity '{v}', defaulting to 'info'")
+            return "info"
+        return v
 
     @field_validator('triggered_at', mode='before')
     @classmethod
@@ -42,15 +50,22 @@ def main(
     dry_run: bool = False
 ):
     logger = logging.getLogger(__name__)
-    if dry_run:
-        logger.info(f"alert_id: {payload.get('alert_id')}, service: {payload.get('service')}, severity: {payload.get('severity')}")
-        logger.info(f"DRY RUN, Exiting")
-        return {**payload, "dry_run": True}
+    
     try:
         validated_payload = Payload(**payload)
     except ValidationError as e:
-        raise ValueError(e.json(indent=2,include_url=False))
+        logger.error(f"Validation failed for payload: {payload}. Errors: {e.json(indent=2, include_url=False)}")
+        return {
+            "valid": False,
+            "error": "validation_failed",
+            "details": e.errors(),
+            "original_payload": payload
+        }
 
     logger.info(f"alert_id: {validated_payload.alert_id}, service: {validated_payload.service}, severity: {validated_payload.severity}")
 
-    return {**validated_payload.model_dump()}
+    if dry_run:
+        logger.info(f"DRY RUN, Exiting")
+        return {**validated_payload.model_dump(), "dry_run": True}
+
+    return {**validated_payload.model_dump(), "dry_run": False}

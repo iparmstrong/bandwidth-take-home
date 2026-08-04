@@ -1,0 +1,280 @@
+summary: ""
+description: ""
+value:
+  modules:
+    - id: validated_message
+      summary: Validatior
+      value:
+        type: rawscript
+        content: |-
+          import sys
+          import logging
+          from datetime import datetime, timezone
+          from typing import Any, Literal
+          from pydantic import BaseModel, ValidationError, field_validator, Field
+
+          logging.basicConfig(
+              stream=sys.stdout,
+              level=logging.INFO,
+              format='%(asctime)s - %(levelname)s - %(message)s'
+          )
+          logger = logging.getLogger(__name__)
+
+          class Payload(BaseModel):
+              alert_id: str = Field(..., min_length=1)
+              service: str
+              severity: Literal["critical", "warning", "info"]
+              message: str
+              host: str
+              triggered_at: str
+
+              @field_validator('severity', mode='before')
+              @classmethod
+              def fallback_severity(cls, v: Any) -> str:
+                  if v not in {"critical", "warning", "info"}:
+                      logger.warning(f"Unrecognized severity '{v}', defaulting to 'info'")
+                      return "info"
+                  return v
+
+              @field_validator('triggered_at', mode='before')
+              @classmethod
+              def clean_value(cls, v: Any) -> str:
+                  if isinstance(v, int):
+                      date_str = datetime.fromtimestamp(v).replace(microsecond=0).isoformat()
+                      return f"{date_str}Z"
+                  return v
+
+          def main(payload: dict[str, Any], dry_run: bool = False):
+              logger = logging.getLogger(__name__)
+              try:
+                  validated_payload = Payload(**payload)
+              except ValidationError as e:
+                  logger.error(f"Validation failed for payload: {payload}. Errors: {e.json(indent=2, include_url=False)}")
+                  return {
+                      "valid": False,
+                      "error": "validation_failed",
+                      "details": e.errors(),
+                      "original_payload": payload
+                  }
+
+              logger.info(f"alert_id: {validated_payload.alert_id}, service: {validated_payload.service}, severity: {validated_payload.severity}")
+
+              if dry_run:
+                  logger.info(f"DRY RUN, Exiting")
+                  return {**validated_payload.model_dump(), "dry_run": True}
+
+              return {**validated_payload.model_dump(), "dry_run": False}
+        language: python3
+        input_transforms:
+          dry_run:
+            type: static
+            value: false
+          payload:
+            type: javascript
+            expr: flow_input
+      mock:
+        enabled: false
+        return_value:
+          host: prod-payments-01
+          message: HTTP 5xx error rate exceeded 5% over a 5-minute window
+          service: payments-api
+          alert_id: ALT-4892
+          severity: critical
+          triggered_at: 2025-03-15T13:52:00Z
+    - id: b
+      value:
+        type: branchone
+        branches:
+          - summary: DLQ Branch
+            expr: results.validated_message.valid === false
+            modules:
+              - id: dlq_log
+                summary: Send to DLQ
+                value:
+                  type: rawscript
+                  content: |-
+                    import logging
+                    def main(invalid_payload: dict):
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Routing to DLQ: {invalid_payload}")
+                        return {"status": "routed_to_dlq", "data": invalid_payload}
+                  language: python3
+                  input_transforms:
+                    invalid_payload:
+                      type: javascript
+                      expr: results.validated_message
+          - summary: Warning Branch
+            expr: results.validated_message.severity == "warning"
+            modules:
+              - id: warning_classify
+                summary: Classify
+                value:
+                  type: rawscript
+                  content: >-
+                    # import wmill
+
+                    from typing import Any
+
+
+                    def main(validated_json: dict[str, Any]):
+                        severity = validated_json.get("severity")
+                        match severity:
+                            case "critical":
+                                return {**validated_json, "should_page": True, "channel": "#incidents"}
+                            case "warning":
+                                return {**validated_json, "should_page": False, "channel": "#alerts"}
+                            case "critical":
+                                return {**validated_json, "should_page": False, "channel": "#monitoring"}
+                            case _:
+                                raise ValueError("Severity was not as expected")
+                  language: python3
+                  input_transforms:
+                    validated_json:
+                      type: javascript
+                      expr: results.validated_message
+              - id: c2
+                value:
+                  type: script
+                  path: u/admin/slack_call
+                  input_transforms:
+                    dry_run:
+                      type: javascript
+                      expr: results.validated_message.dry_run
+                    in_CI:
+                      type: static
+                      value: false
+                    in_data:
+                      type: javascript
+                      expr: previous_result
+                    should_fail:
+                      type: static
+                      value: false
+                  is_trigger: false
+                summary: Slack Call
+          - summary: Error Branch
+            expr: results.validated_message.severity == "critical"
+            modules:
+              - id: error_classify
+                summary: Classify
+                value:
+                  type: rawscript
+                  content: >-
+                    # import wmill
+
+                    from typing import Any
+
+
+                    def main(validated_json: dict[str, Any]):
+                        severity = validated_json.get("severity")
+                        match severity:
+                            case "critical":
+                                return {**validated_json, "should_page": True, "channel": "#incidents"}
+                            case "warning":
+                                return {**validated_json, "should_page": False, "channel": "#alerts"}
+                            case "critical":
+                                return {**validated_json, "should_page": False, "channel": "#monitoring"}
+                            case _:
+                                raise ValueError("Severity was not as expected")
+                  language: python3
+                  input_transforms:
+                    validated_json:
+                      type: javascript
+                      expr: results.validated_message
+              - id: c
+                value:
+                  type: script
+                  path: u/admin/slack_call
+                  input_transforms:
+                    dry_run:
+                      type: javascript
+                      expr: results.error_classify.dry_run
+                    in_CI:
+                      type: static
+                      value: false
+                    in_data:
+                      type: javascript
+                      expr: previous_result
+                    should_fail:
+                      type: static
+                      value: false
+                  is_trigger: false
+                summary: Slack Call
+        default:
+          - id: info_classify
+            summary: Classify
+            value:
+              type: rawscript
+              content: >-
+                # import wmill
+
+                from typing import Any
+
+
+                def main(validated_json: dict[str, Any]):
+                    severity = validated_json.get("severity")
+                    match severity:
+                        case "critical":
+                            return {**validated_json, "should_page": True, "channel": "#incidents"}
+                        case "warning":
+                            return {**validated_json, "should_page": False, "channel": "#alerts"}
+                        case _:
+                            return {**validated_json, "should_page": False, "channel": "#monitoring"}
+              language: python3
+              input_transforms:
+                validated_json:
+                  type: javascript
+                  expr: results.validated_message
+          - id: c22
+            value:
+              type: script
+              path: u/admin/slack_call
+              input_transforms:
+                dry_run:
+                  type: javascript
+                  expr: results.validated_message.dry_run
+                in_CI:
+                  type: static
+                  value: false
+                in_data:
+                  type: javascript
+                  expr: previous_result
+                should_fail:
+                  type: static
+                  value: false
+              is_trigger: false
+            summary: Slack Call
+      summary: ""
+  groups: []
+schema:
+  order:
+    - alert_id
+    - service
+    - severity
+    - message
+    - host
+    - triggered_at
+  properties:
+    alert_id:
+      type: string
+      description: ""
+      default: ""
+    service:
+      type: string
+      description: ""
+      default: ""
+    severity:
+      default: ""
+      type: string
+      description: ""
+    message:
+      type: string
+      description: ""
+      default: ""
+    host:
+      type: string
+      description: ""
+      default: ""
+    triggered_at:
+      type: integer
+      description: ""
+  required: []
