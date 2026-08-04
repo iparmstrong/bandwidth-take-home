@@ -44,6 +44,22 @@ services:
     volumes:
       - worker_dependency_cache:/tmp/windmill/cache
       - worker_logs:/tmp/windmill/logs
+  windmill_worker_2:
+    image: ghcr.io/windmill-labs/windmill:main
+    pull_policy: always
+    restart: unless-stopped
+    # Required so jobs can run in their own PID namespace.
+    privileged: true
+    environment:
+      DATABASE_URL: postgres://postgres:changeme@db/windmill?sslmode=disable
+      MODE: worker
+      WORKER_GROUP: default
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - worker_dependency_cache:/tmp/windmill/cache
+      - worker_logs:/tmp/windmill/logs
 
 volumes:
   db_data:
