@@ -24,7 +24,7 @@ This review evaluates the implementation of the `pvr_flow` against the requireme
 **Areas for Improvement / Bugs:**
 - **Missing Required Logging**: The requirements explicitly state: *"Each branch path logs an `INFO` line identifying which path was taken"*. The inline classify scripts for `info_classify`, `warning_classify`, and `error_classify` currently lack any `logger.info(...)` statements to fulfill this.
 - **Redundant Match Statements**: In the inline scripts for `warning_classify` and `error_classify`, the `match severity:` block checks `case "critical":` twice. While it's unreachable due to the upstream branch condition, it's structurally incorrect and should be cleaned up. It's also redundant to check all severities again since the flow branch already filtered them, though keeping a match block is fine for safety.
-
+- note updated inline scripts with correct values (Ian Armstrong)
 ## Problem 2: Stub a Notification Delivery
 
 ### slack_call.py
