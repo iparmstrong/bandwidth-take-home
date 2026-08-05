@@ -243,6 +243,8 @@ schema:
     - message
     - host
     - triggered_at
+    - summary
+    - probable_cause
   properties:
     alert_id:
       type: string
@@ -267,4 +269,12 @@ schema:
     triggered_at:
       type: integer
       description: ""
+    summary:
+      type: string
+      description: ""
+      default: ""
+    probable_cause:
+      type: string
+      description: ""
+      default: ""
   required: []

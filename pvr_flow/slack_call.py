@@ -38,6 +38,8 @@ def main(
     alert_id = in_data.get("alert_id")
     service = in_data.get("service")
     severity = in_data.get("severity", "info")
+    summary = in_data.get("summary")
+    probable_cause = in_data.get("probable_cause")
     message = in_data.get("message")
     host = in_data.get("host")
     triggered_at = in_data.get("triggered_at")
@@ -54,30 +56,51 @@ def main(
     if should_page is not None:
         fields.append({"type": "mrkdwn", "text": f"*Page On-Call:*\n{should_page}"})
 
+    blocks = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": f"Alert: {alert_id}",
+                "emoji": True,
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*{message}*",
+            },
+        },
+    ]
+
+    if summary:
+        blocks.append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*Summary:*\n{summary}",
+            },
+        })
+
+    if probable_cause:
+        blocks.append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*Probable Cause:*\n{probable_cause}",
+            },
+        })
+
+    blocks.append({
+        "type": "section",
+        "fields": fields,
+    })
+
     req_body = {
         "channel": channel,
         "text": f"[{str(severity).upper()}] Alert {alert_id} on {service}: {message}",
-        "blocks": [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": f"Alert: {alert_id}",
-                    "emoji": True,
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*{message}*",
-                },
-            },
-            {
-                "type": "section",
-                "fields": fields,
-            },
-        ],
+        "blocks": blocks,
     }
 
     if dry_run:

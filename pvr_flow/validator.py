@@ -2,7 +2,7 @@ import sys
 import logging
 from datetime import datetime, timezone
 from typing import Any, Literal
-from pydantic import BaseModel, ValidationError, field_validator, Field
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator, Field
 import logging
 # You can import any PyPi package. 
 # See here for more info: https://www.windmill.dev/docs/advanced/dependencies_in_python
@@ -27,6 +27,7 @@ class Payload(BaseModel):
     host: str
     triggered_at: str
 
+    model_config = ConfigDict(extra='allow')
 
     @field_validator('severity', mode='before')
     @classmethod
