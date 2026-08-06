@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     container: ghcr.io/astral-sh/uv:debian
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: |
           echo "### Unit Test Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo '```text' >> $GITHUB_STEP_SUMMARY
@@ -16,5 +16,5 @@ jobs:
     runs-on: ubuntu-latest
     container: ghcr.io/astral-sh/uv:debian
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: PYTHONPATH=. uv run pytest pvr_flow/tests/property/
