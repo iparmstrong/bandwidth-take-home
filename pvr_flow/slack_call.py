@@ -20,7 +20,7 @@ def call_slack_stub(body: dict[str, Any]) -> Response:
     return Response(200, request=req)
 
 
-def call_slack(body: dict[str, Any]) -> Response:
+def call_slack(body: dict[str, Any]) -> Response:  # pragma: no cover
     """Stub representing the POST request to Slack."""
     req = httpx.Request("POST", "https://slack.com/api/chat.postMessage", json=body)
     return Response(200, request=req)
