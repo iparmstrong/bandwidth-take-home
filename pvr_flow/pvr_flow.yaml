@@ -1,4 +1,4 @@
-summary: ""
+summary: Parse Validate Route
 description: ""
 value:
   modules:
@@ -9,8 +9,8 @@ value:
         is_trigger: false
         input_transforms:
           dry_run:
-            type: static
-            value: false
+            expr: flow_input.dry_run
+            type: javascript
           payload:
             expr: flow_input
             type: javascript
@@ -21,40 +21,9 @@ value:
         default:
           - id: info_classify
             value:
-              lock: |
-                # py: 3.12
-              type: rawscript
-              content: >-
-                import sys
-
-                import logging
-
-                from typing import Any
-
-
-                logging.basicConfig(
-                    stream=sys.stdout,
-                    level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s'
-                )
-
-                logger = logging.getLogger(__name__)
-
-
-
-                def main(validated_json: dict[str, Any]):
-                    severity = validated_json.get("severity")
-                    match severity:
-                        case "critical":
-                            logger.info("Routing alert through 'critical' branch -> channel: #incidents, should_page: True")
-                            return {**validated_json, "should_page": True, "channel": "#incidents"}
-                        case "warning":
-                            logger.info("Routing alert through 'warning' branch -> channel: #alerts, should_page: False")
-                            return {**validated_json, "should_page": False, "channel": "#alerts"}
-                        case _:
-                            logger.info("Routing alert through 'info' branch -> channel: #monitoring, should_page: False")
-                            return {**validated_json, "should_page": False, "channel": "#monitoring"}
-              language: python3
+              path: u/admin/clasify_script
+              type: script
+              is_trigger: false
               input_transforms:
                 validated_json:
                   expr: results.validated_message
@@ -66,18 +35,12 @@ value:
               type: script
               is_trigger: false
               input_transforms:
-                in_CI:
-                  type: static
-                  value: false
                 dry_run:
                   expr: results.validated_message.dry_run
                   type: javascript
                 in_data:
                   expr: previous_result
                   type: javascript
-                should_fail:
-                  type: static
-                  value: false
             summary: Slack Call
         branches:
           - expr: results.validated_message.valid === false
@@ -107,40 +70,9 @@ value:
             modules:
               - id: warning_classify
                 value:
-                  lock: |
-                    # py: 3.12
-                  type: rawscript
-                  content: >-
-                    import sys
-
-                    import logging
-
-                    from typing import Any
-
-
-                    logging.basicConfig(
-                        stream=sys.stdout,
-                        level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s'
-                    )
-
-                    logger = logging.getLogger(__name__)
-
-
-
-                    def main(validated_json: dict[str, Any]):
-                        severity = validated_json.get("severity")
-                        match severity:
-                            case "critical":
-                                logger.info("Routing alert through 'critical' branch -> channel: #incidents, should_page: True")
-                                return {**validated_json, "should_page": True, "channel": "#incidents"}
-                            case "warning":
-                                logger.info("Routing alert through 'warning' branch -> channel: #alerts, should_page: False")
-                                return {**validated_json, "should_page": False, "channel": "#alerts"}
-                            case _:
-                                logger.info("Routing alert through 'info' branch -> channel: #monitoring, should_page: False")
-                                return {**validated_json, "should_page": False, "channel": "#monitoring"}
-                  language: python3
+                  path: u/admin/clasify_script
+                  type: script
+                  is_trigger: false
                   input_transforms:
                     validated_json:
                       expr: results.validated_message
@@ -152,60 +84,23 @@ value:
                   type: script
                   is_trigger: false
                   input_transforms:
-                    in_CI:
-                      type: static
-                      value: false
                     dry_run:
                       expr: results.validated_message.dry_run
                       type: javascript
                     in_data:
                       expr: previous_result
                       type: javascript
-                    should_fail:
-                      type: static
-                      value: false
                 summary: Slack Call
             summary: Warning Branch
             parallel: true
             skip_failure: true
           - expr: results.validated_message.severity == "critical"
             modules:
-              - id: error_classify
+              - id: d
                 value:
-                  lock: |
-                    # py: 3.12
-                  type: rawscript
-                  content: >-
-                    import sys
-
-                    import logging
-
-                    from typing import Any
-
-
-                    logging.basicConfig(
-                        stream=sys.stdout,
-                        level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s'
-                    )
-
-                    logger = logging.getLogger(__name__)
-
-
-
-                    def main(validated_json: dict[str, Any]):
-                        severity = validated_json.get("severity")
-                        match severity:
-                            case "critical":
-                                logger.info("Routing alert through 'critical' branch -> channel: #incidents, should_page: True")
-                                return {**validated_json, "should_page": True, "channel": "#incidents"}
-                            case "warning":
-                                logger.info("Routing alert through 'warning' branch -> channel: #alerts, should_page: False")
-                                return {**validated_json, "should_page": False, "channel": "#alerts"}
-                            case _:
-                                logger.info("Routing alert through 'info' branch -> channel: #monitoring, should_page: False")
-                                return {**validated_json, "should_page": False, "channel": "#monitoring"}
-                  language: python3
+                  path: u/admin/clasify_script
+                  type: script
+                  is_trigger: false
                   input_transforms:
                     validated_json:
                       expr: results.validated_message
@@ -217,18 +112,12 @@ value:
                   type: script
                   is_trigger: false
                   input_transforms:
-                    in_CI:
-                      type: static
-                      value: false
                     dry_run:
-                      expr: results.error_classify.dry_run
+                      expr: results.validated_message.dry_run
                       type: javascript
                     in_data:
                       expr: previous_result
                       type: javascript
-                    should_fail:
-                      type: static
-                      value: false
                 summary: Slack Call
             summary: Error Branch
             parallel: true
@@ -243,8 +132,7 @@ schema:
     - message
     - host
     - triggered_at
-    - summary
-    - probable_cause
+    - dry_run
   properties:
     alert_id:
       type: string
@@ -269,12 +157,8 @@ schema:
     triggered_at:
       type: integer
       description: ""
-    summary:
-      type: string
+    dry_run:
+      default: false
+      type: boolean
       description: ""
-      default: ""
-    probable_cause:
-      type: string
-      description: ""
-      default: ""
   required: []
