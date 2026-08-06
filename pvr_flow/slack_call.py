@@ -14,29 +14,21 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def call_slack_stub(body: dict[str, Any], should_fail: bool = False) -> Response:
+def call_slack_stub(body: dict[str, Any]) -> Response:
     """Stub representing the POST request to Slack."""
     req = httpx.Request("POST", "https://slack.com/api/chat.postMessage", json=body)
-    if should_fail:
-        return Response(503, request=req)
-    else:
-        return Response(200, request=req)
+    return Response(200, request=req)
 
 
-def call_slack(body: dict[str, Any], should_fail: bool = False) -> Response:
+def call_slack(body: dict[str, Any]) -> Response:
     """Stub representing the POST request to Slack."""
     req = httpx.Request("POST", "https://slack.com/api/chat.postMessage", json=body)
-    if should_fail:
-        return Response(503, request=req)
-    else:
-        return Response(200, request=req)
+    return Response(200, request=req)
 
 
 def main(
     in_data: dict[str, Any],
     dry_run: bool = False,
-    should_fail: bool = False,
-    in_CI: bool = False,
 ) -> dict[str, Any]:
     alert_id = in_data.get("alert_id")
     service = in_data.get("service")
@@ -119,7 +111,7 @@ def main(
         # the retry logic as requested in requirement #3, because the stub IS the
         # "non-live" call.
 
-    slack_func = call_slack_stub if dry_run or in_CI else call_slack
+    slack_func = call_slack_stub if dry_run else call_slack
 
     response = None
     is_ok = False
@@ -130,7 +122,7 @@ def main(
         attempts = i + 1
         try:
             # Dynamically call the appropriate function
-            response = slack_func(req_body, should_fail=should_fail)
+            response = slack_func(req_body)
             response.raise_for_status()
             is_ok = True
             break
