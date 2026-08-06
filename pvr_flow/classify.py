@@ -10,7 +10,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def main(validated_json: dict[str, Any]):
+def main(validated_json: dict[str, Any]) -> dict[str, Any]:
     severity = validated_json.get("severity")
     match severity:
         case "critical":

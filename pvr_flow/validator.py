@@ -43,7 +43,7 @@ class Payload(BaseModel):
         return v
 
 
-def main(payload: dict[str, Any], dry_run: bool = False):
+def main(payload: dict[str, Any], dry_run: bool = False) -> dict[str, Any]:
     logger = logging.getLogger(__name__)
 
     try:

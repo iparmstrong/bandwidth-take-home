@@ -37,7 +37,7 @@ def main(
     dry_run: bool = False,
     should_fail: bool = False,
     in_CI: bool = False,
-):
+) -> dict[str, Any]:
     alert_id = in_data.get("alert_id")
     service = in_data.get("service")
     severity = in_data.get("severity", "info")
@@ -59,7 +59,7 @@ def main(
     if should_page is not None:
         fields.append({"type": "mrkdwn", "text": f"*Page On-Call:*\n{should_page}"})
 
-    blocks = [
+    blocks: list[dict[str, Any]] = [
         {
             "type": "header",
             "text": {
@@ -106,7 +106,7 @@ def main(
         }
     )
 
-    req_body = {
+    req_body: dict[str, Any] = {
         "channel": channel,
         "text": f"[{str(severity).upper()}] Alert {alert_id} on {service}: {message}",
         "blocks": blocks,

@@ -1,9 +1,8 @@
 from __future__ import annotations
 import sys
 import logging
-from datetime import datetime, timezone
 from typing import Any, Literal
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field
 from openai import OpenAI
 import wmill
 
@@ -92,7 +91,10 @@ def call_openai_completion(
         response_format=AIIncidentAnalysis,
         reasoning_effort="minimal",
     )
-    return completion.choices[0].message.parsed
+    parsed = completion.choices[0].message.parsed
+    if parsed is None:
+        raise ValueError("Failed to parse structured output from OpenAI.")
+    return parsed
 
 
 def main(
@@ -121,24 +123,24 @@ def main(
         logger.info("Executing in DRY RUN mode")
 
         inferred_service = (
-            payload['service'] if payload['service'] != "unknown" else "payments-api"
+            payload["service"] if payload["service"] != "unknown" else "payments-api"
         )
         inferred_severity = (
-            payload['severity']
-            if payload['severity'] in ["critical", "warning", "info"]
+            payload["severity"]
+            if payload["severity"] in ["critical", "warning", "info"]
             else "critical"
         )
-        msg_summary = payload['message'].split("\n")[0][:100]
+        msg_summary = payload["message"].split("\n")[0][:100]
 
         return format_result(
-            alert_id=payload['alert_id'],
+            alert_id=payload["alert_id"],
             service=inferred_service,
             severity=inferred_severity,
             message=f"[DRY RUN] Inferred issue in {inferred_service}: {msg_summary}",
             summary=f"[DRY RUN] Simulated diagnostic analysis of incident on {payload['host']}.",
             probable_cause=f"[DRY RUN] Potential error detected in {inferred_service} log trace.",
-            host=payload['host'],
-            triggered_at=payload['triggered_at'],
+            host=payload["host"],
+            triggered_at=payload["triggered_at"],
             dry_run=True if not api_key else dry_run,
         )
 
@@ -158,13 +160,13 @@ def main(
     )
 
     return format_result(
-        alert_id=payload['alert_id'],
+        alert_id=payload["alert_id"],
         service=parsed.service,
         severity=parsed.severity,
         message=parsed.message,
         summary=parsed.summary,
         probable_cause=parsed.probable_cause,
-        host=payload['host'],
-        triggered_at=payload['triggered_at'],
+        host=payload["host"],
+        triggered_at=payload["triggered_at"],
         dry_run=dry_run,
     )
