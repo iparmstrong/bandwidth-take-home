@@ -9,9 +9,10 @@ from httpx import Response
 logging.basicConfig(
     stream=sys.stdout,
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
 
 def call_slack_stub(body: dict[str, Any], should_fail: bool = False) -> Response:
     """Stub representing the POST request to Slack."""
@@ -21,6 +22,7 @@ def call_slack_stub(body: dict[str, Any], should_fail: bool = False) -> Response
     else:
         return Response(200, request=req)
 
+
 def call_slack(body: dict[str, Any], should_fail: bool = False) -> Response:
     """Stub representing the POST request to Slack."""
     req = httpx.Request("POST", "https://slack.com/api/chat.postMessage", json=body)
@@ -28,6 +30,7 @@ def call_slack(body: dict[str, Any], should_fail: bool = False) -> Response:
         return Response(503, request=req)
     else:
         return Response(200, request=req)
+
 
 def main(
     in_data: dict[str, Any],
@@ -75,27 +78,33 @@ def main(
     ]
 
     if summary:
-        blocks.append({
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"*Summary:*\n{summary}",
-            },
-        })
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Summary:*\n{summary}",
+                },
+            }
+        )
 
     if probable_cause:
-        blocks.append({
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"*Probable Cause:*\n{probable_cause}",
-            },
-        })
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Probable Cause:*\n{probable_cause}",
+                },
+            }
+        )
 
-    blocks.append({
-        "type": "section",
-        "fields": fields,
-    })
+    blocks.append(
+        {
+            "type": "section",
+            "fields": fields,
+        }
+    )
 
     req_body = {
         "channel": channel,
@@ -105,9 +114,9 @@ def main(
 
     if dry_run:
         logger.info(f"DRY RUN: Constructed request for channel {channel}: {req_body}")
-        # Note: The prompt states "This step only needs to run in dry_run mode... log 
-        # and return without attempting a live call." We still call the stub to exercise 
-        # the retry logic as requested in requirement #3, because the stub IS the 
+        # Note: The prompt states "This step only needs to run in dry_run mode... log
+        # and return without attempting a live call." We still call the stub to exercise
+        # the retry logic as requested in requirement #3, because the stub IS the
         # "non-live" call.
 
     slack_func = call_slack_stub if dry_run or in_CI else call_slack
@@ -131,12 +140,14 @@ def main(
                 # Wait 2^(n-1) seconds: attempts=1 -> 1s, attempts=2 -> 2s
                 time.sleep(2 ** (attempts - 1))
             else:
-                logger.error(f"Failed to deliver Slack message after {max_attempts} attempts.")
+                logger.error(
+                    f"Failed to deliver Slack message after {max_attempts} attempts."
+                )
 
     return {
         "alert_id": alert_id,
         "channel": channel,
         "ok": is_ok,
         "attempts": attempts,
-        "dry_run": dry_run
+        "dry_run": dry_run,
     }
