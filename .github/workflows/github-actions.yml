@@ -3,14 +3,18 @@ run-name: ${{ github.actor }} running tests
 on: [push]
 jobs:
   unit-test:
-    runs-on: ghcr.io/astral-sh/uv:debian uv
+    runs-on: ubuntu-latest
+    container: ghcr.io/astral-sh/uv:debian
     steps:
+      - uses: actions/checkout@v4
       - run: |
           echo "### Unit Test Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo '```text' >> $GITHUB_STEP_SUMMARY
           PYTHONPATH=. uv run pytest pvr_flow/tests/unit/ --cov=pvr_flow --cov-report=term-missing >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
   property-test:
-    runs-on: ghcr.io/astral-sh/uv:debian uv
+    runs-on: ubuntu-latest
+    container: ghcr.io/astral-sh/uv:debian
     steps:
+      - uses: actions/checkout@v4
       - run: PYTHONPATH=. uv run pytest pvr_flow/tests/property/
