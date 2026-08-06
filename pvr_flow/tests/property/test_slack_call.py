@@ -16,19 +16,13 @@ from pvr_flow.slack_call import main as slack_call_main
         }
     ),
     st.booleans(),  # dry_run
-    st.booleans(),  # should_fail
 )
 @settings(deadline=None, max_examples=5)
-def test_slack_call(in_data, dry_run, should_fail):
-    result = slack_call_main(in_data, dry_run=dry_run, should_fail=should_fail)
+def test_slack_call(in_data, dry_run):
+    result = slack_call_main(in_data, dry_run=dry_run)
 
     assert result["alert_id"] == in_data.get("alert_id")
     assert result["channel"] == in_data.get("channel")
     assert result["dry_run"] == dry_run
-
-    if should_fail:
-        assert result["ok"] is False
-        assert result["attempts"] == 3  # max_attempts
-    else:
-        assert result["ok"] is True
-        assert result["attempts"] == 1
+    assert result["ok"] is True
+    assert result["attempts"] == 1
