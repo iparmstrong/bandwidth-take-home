@@ -59,7 +59,6 @@ def test_validator_invalid_severity(
     }
     result = validator_main(payload)
 
-    # Invalid severity should be downgraded to "info"
     assert result.get("valid") is not False
     assert result["severity"] == "unknown"
 
