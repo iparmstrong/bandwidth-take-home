@@ -1,0 +1,7 @@
+{
+  "summary": "Classify Script",
+  "description": "",
+  "schema": {"$schema":"https://json-schema.org/draft/2020-12/schema","properties":{"validated_json":{"default":null,"description":"","type":""}},"required":["validated_json"],"type":"object"},
+  "lock": "# py: 3.12\n",
+  "kind": "script"
+}

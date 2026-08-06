@@ -1,0 +1,7 @@
+{
+  "summary": "AI Enrichment",
+  "description": "This script was edited in place of flow u/admin/ai_flow  by iarmstrong.",
+  "schema": {"$schema":"https://json-schema.org/draft/2020-12/schema","properties":{"payload":{"default":null,"description":"","type":""},"model":{"default":null,"description":"","originalType":"string","type":"string"},"dry_run":{"default":false,"description":"","type":"boolean"}},"required":["payload"],"type":"object"},
+  "lock": "# py: 3.12\nannotated-types==0.8.0\nanyio==4.14.2\ncertifi==2026.7.22\ndistro==1.9.0\nh11==0.16.0\nhttpcore==1.0.9\nhttpx==0.28.1\nidna==3.18\njiter==0.16.0\nopenai==2.53.0\npydantic==2.13.4\npydantic-core==2.46.4\nsniffio==1.3.1\ntqdm==4.70.0\ntyping-extensions==4.16.0\ntyping-inspection==0.4.2\nwmill==1.781.0",
+  "kind": "script"
+}

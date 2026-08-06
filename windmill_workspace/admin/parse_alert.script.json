@@ -1,0 +1,7 @@
+{
+  "summary": "Parse Alert",
+  "description": "",
+  "schema": {"$schema":"https://json-schema.org/draft/2020-12/schema","properties":{"payload":{"default":null,"description":"","type":""},"dry_run":{"default":false,"description":"","type":"boolean"}},"required":["payload"],"type":"object"},
+  "lock": "# py: 3.12\nannotated-types==0.8.0\npydantic==2.13.4\npydantic-core==2.46.4\ntyping-extensions==4.16.0\ntyping-inspection==0.4.2",
+  "kind": "script"
+}

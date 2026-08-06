@@ -1,0 +1,229 @@
+{
+  "value": {
+    "groups": [],
+    "modules": [
+      {
+        "id": "validated_message",
+        "value": {
+          "path": "u/admin/parse_alert",
+          "type": "script",
+          "is_trigger": false,
+          "input_transforms": {
+            "dry_run": {
+              "expr": "flow_input.dry_run",
+              "type": "javascript"
+            },
+            "payload": {
+              "expr": "flow_input",
+              "type": "javascript"
+            }
+          }
+        },
+        "summary": "Validatior"
+      },
+      {
+        "id": "b",
+        "value": {
+          "type": "branchone",
+          "default": [
+            {
+              "id": "info_classify",
+              "value": {
+                "path": "u/admin/clasify_script",
+                "type": "script",
+                "is_trigger": false,
+                "input_transforms": {
+                  "validated_json": {
+                    "expr": "results.validated_message",
+                    "type": "javascript"
+                  }
+                }
+              },
+              "summary": "Classify"
+            },
+            {
+              "id": "c22",
+              "value": {
+                "path": "u/admin/slack_call",
+                "type": "script",
+                "is_trigger": false,
+                "input_transforms": {
+                  "dry_run": {
+                    "expr": "results.validated_message.dry_run",
+                    "type": "javascript"
+                  },
+                  "in_data": {
+                    "expr": "previous_result",
+                    "type": "javascript"
+                  }
+                }
+              },
+              "summary": "Slack Call"
+            }
+          ],
+          "branches": [
+            {
+              "expr": "results.validated_message.valid === false",
+              "modules": [
+                {
+                  "id": "dlq_log",
+                  "value": {
+                    "lock": "# py: 3.12\n",
+                    "type": "rawscript",
+                    "content": "import logging\ndef main(invalid_payload: dict):\n    logger = logging.getLogger(__name__)\n    logger.error(f\"Routing to DLQ: {invalid_payload}\")\n    return {\"status\": \"routed_to_dlq\", \"data\": invalid_payload}",
+                    "language": "python3",
+                    "input_transforms": {
+                      "invalid_payload": {
+                        "expr": "results.validated_message",
+                        "type": "javascript"
+                      }
+                    }
+                  },
+                  "summary": "Send to DLQ"
+                }
+              ],
+              "summary": "DLQ Branch",
+              "parallel": true,
+              "skip_failure": true
+            },
+            {
+              "expr": "results.validated_message.severity == \"warning\"",
+              "modules": [
+                {
+                  "id": "warning_classify",
+                  "value": {
+                    "path": "u/admin/clasify_script",
+                    "type": "script",
+                    "is_trigger": false,
+                    "input_transforms": {
+                      "validated_json": {
+                        "expr": "results.validated_message",
+                        "type": "javascript"
+                      }
+                    }
+                  },
+                  "summary": "Classify"
+                },
+                {
+                  "id": "c2",
+                  "value": {
+                    "path": "u/admin/slack_call",
+                    "type": "script",
+                    "is_trigger": false,
+                    "input_transforms": {
+                      "dry_run": {
+                        "expr": "results.validated_message.dry_run",
+                        "type": "javascript"
+                      },
+                      "in_data": {
+                        "expr": "previous_result",
+                        "type": "javascript"
+                      }
+                    }
+                  },
+                  "summary": "Slack Call"
+                }
+              ],
+              "summary": "Warning Branch",
+              "parallel": true,
+              "skip_failure": true
+            },
+            {
+              "expr": "results.validated_message.severity == \"critical\"",
+              "modules": [
+                {
+                  "id": "d",
+                  "value": {
+                    "path": "u/admin/clasify_script",
+                    "type": "script",
+                    "is_trigger": false,
+                    "input_transforms": {
+                      "validated_json": {
+                        "expr": "results.validated_message",
+                        "type": "javascript"
+                      }
+                    }
+                  },
+                  "summary": "Classify"
+                },
+                {
+                  "id": "c",
+                  "value": {
+                    "path": "u/admin/slack_call",
+                    "type": "script",
+                    "is_trigger": false,
+                    "input_transforms": {
+                      "dry_run": {
+                        "expr": "results.validated_message.dry_run",
+                        "type": "javascript"
+                      },
+                      "in_data": {
+                        "expr": "previous_result",
+                        "type": "javascript"
+                      }
+                    }
+                  },
+                  "summary": "Slack Call"
+                }
+              ],
+              "summary": "Error Branch",
+              "parallel": true,
+              "skip_failure": true
+            }
+          ]
+        },
+        "summary": ""
+      }
+    ]
+  },
+  "schema": {
+    "order": [
+      "alert_id",
+      "service",
+      "severity",
+      "message",
+      "host",
+      "triggered_at",
+      "dry_run"
+    ],
+    "properties": {
+      "alert_id": {
+        "type": "string",
+        "description": "",
+        "default": ""
+      },
+      "service": {
+        "type": "string",
+        "description": "",
+        "default": ""
+      },
+      "severity": {
+        "default": "",
+        "type": "string",
+        "description": ""
+      },
+      "message": {
+        "type": "string",
+        "description": "",
+        "default": ""
+      },
+      "host": {
+        "type": "string",
+        "description": "",
+        "default": ""
+      },
+      "triggered_at": {
+        "type": "integer",
+        "description": ""
+      },
+      "dry_run": {
+        "default": false,
+        "type": "boolean",
+        "description": ""
+      }
+    },
+    "required": []
+  },
+  "summary": "Parse Validate Route",
+  "description": ""
+}

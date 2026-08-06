@@ -1,0 +1,172 @@
+{
+  "value": {
+    "groups": [],
+    "modules": [
+      {
+        "id": "validated_message",
+        "value": {
+          "path": "u/admin/parse_alert",
+          "type": "script",
+          "is_trigger": false,
+          "input_transforms": {
+            "dry_run": {
+              "expr": "flow_input.dry_run",
+              "type": "javascript"
+            },
+            "payload": {
+              "expr": "flow_input",
+              "type": "javascript"
+            }
+          }
+        },
+        "summary": "Validate Payload"
+      },
+      {
+        "id": "b",
+        "value": {
+          "type": "branchone",
+          "default": [
+            {
+              "id": "ai_enrich",
+              "value": {
+                "path": "u/admin/ai_flow/ai_enrich",
+                "type": "script",
+                "is_trigger": false,
+                "input_transforms": {
+                  "model": {
+                    "type": "static",
+                    "value": "gpt-5-mini"
+                  },
+                  "dry_run": {
+                    "expr": "results.validated_message.dry_run",
+                    "type": "javascript"
+                  },
+                  "payload": {
+                    "expr": "results.validated_message",
+                    "type": "javascript"
+                  }
+                }
+              },
+              "summary": "AI Enrichment"
+            },
+            {
+              "id": "pvr_subflow",
+              "value": {
+                "path": "u/admin/pvr_flow",
+                "type": "flow",
+                "input_transforms": {
+                  "host": {
+                    "expr": "results.ai_enrich.host",
+                    "type": "javascript"
+                  },
+                  "dry_run": {
+                    "expr": "results.ai_enrich.dry_run",
+                    "type": "javascript"
+                  },
+                  "message": {
+                    "expr": "results.ai_enrich.message",
+                    "type": "javascript"
+                  },
+                  "service": {
+                    "expr": "results.ai_enrich.service",
+                    "type": "javascript"
+                  },
+                  "alert_id": {
+                    "expr": "results.ai_enrich.alert_id",
+                    "type": "javascript"
+                  },
+                  "severity": {
+                    "expr": "results.ai_enrich.severity",
+                    "type": "javascript"
+                  },
+                  "triggered_at": {
+                    "expr": "results.ai_enrich.triggered_at",
+                    "type": "javascript"
+                  }
+                }
+              },
+              "summary": "Route & Notify via PVR Flow"
+            }
+          ],
+          "branches": [
+            {
+              "expr": "results.validated_message.valid === false",
+              "modules": [
+                {
+                  "id": "dlq_log",
+                  "value": {
+                    "lock": "# py: 3.12\n",
+                    "type": "rawscript",
+                    "content": "import logging\n\ndef main(invalid_payload: dict):\n    logger = logging.getLogger(__name__)\n    logger.error(f\"Routing to DLQ: {invalid_payload}\")\n    return {\"status\": \"routed_to_dlq\", \"data\": invalid_payload}",
+                    "language": "python3",
+                    "input_transforms": {
+                      "invalid_payload": {
+                        "expr": "results.validated_message",
+                        "type": "javascript"
+                      }
+                    }
+                  },
+                  "summary": "Send to DLQ"
+                }
+              ],
+              "summary": "DLQ Branch",
+              "parallel": true,
+              "skip_failure": true
+            }
+          ]
+        },
+        "summary": ""
+      }
+    ]
+  },
+  "schema": {
+    "order": [
+      "alert_id",
+      "service",
+      "severity",
+      "message",
+      "host",
+      "triggered_at",
+      "dry_run"
+    ],
+    "properties": {
+      "alert_id": {
+        "type": "string",
+        "description": "",
+        "default": ""
+      },
+      "service": {
+        "type": "string",
+        "description": "",
+        "default": ""
+      },
+      "severity": {
+        "default": "",
+        "type": "string",
+        "description": ""
+      },
+      "message": {
+        "type": "string",
+        "description": "",
+        "default": ""
+      },
+      "host": {
+        "type": "string",
+        "description": "",
+        "default": ""
+      },
+      "triggered_at": {
+        "type": "integer",
+        "description": ""
+      },
+      "dry_run": {
+        "default": false,
+        "type": "boolean",
+        "description": ""
+      }
+    },
+    "required": []
+  },
+  "summary": "Ai Flow",
+  "description": ""
+}
