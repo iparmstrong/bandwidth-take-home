@@ -1,6 +1,7 @@
 import pytest
 from pvr_flow.validator import main
 
+
 def test_valid_payload():
     payload = {
         "alert_id": "ALT-4892",
@@ -16,6 +17,7 @@ def test_valid_payload():
     assert result["triggered_at"].endswith("Z")
     assert result["dry_run"] is False
 
+
 def test_invalid_severity():
     payload = {
         "alert_id": "ALT-1",
@@ -29,13 +31,13 @@ def test_invalid_severity():
     assert result.get("valid") is not False
     assert result["severity"] == "info"
 
+
 def test_missing_fields():
-    payload = {
-        "service": "test"
-    }
+    payload = {"service": "test"}
     result = main(payload)
     assert result.get("valid") is False
     assert result.get("error") == "validation_failed"
+
 
 def test_dry_run():
     payload = {
@@ -48,6 +50,7 @@ def test_dry_run():
     }
     result = main(payload, dry_run=True)
     assert result["dry_run"] is True
+
 
 def test_already_iso_date():
     payload = {

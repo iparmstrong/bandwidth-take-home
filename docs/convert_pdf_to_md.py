@@ -113,7 +113,9 @@ def convert_pdf_to_markdown(
                 raise RuntimeError(f"MarkItDown conversion failed: {e}") from e
 
     if not markdown_text:
-        raise RuntimeError(f"Failed to convert PDF '{pdf_file}' to Markdown with method '{method}'.")
+        raise RuntimeError(
+            f"Failed to convert PDF '{pdf_file}' to Markdown with method '{method}'."
+        )
 
     markdown_text = clean_markdown(markdown_text)
 
