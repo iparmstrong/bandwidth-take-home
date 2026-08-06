@@ -1,0 +1,16 @@
+name: windmill scripts
+run-name: ${{ github.actor }} running tests
+on: [push]
+jobs:
+  unit-test:
+    runs-on: ghcr.io/astral-sh/uv:debian uv
+    steps:
+      - run: |
+          echo "### Unit Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          PYTHONPATH=. uv run pytest pvr_flow/tests/unit/ --cov=pvr_flow --cov-report=term-missing >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+  property-test:
+    runs-on: ghcr.io/astral-sh/uv:debian uv
+    steps:
+      - run: PYTHONPATH=. uv run pytest pvr_flow/tests/property/
