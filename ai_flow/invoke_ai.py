@@ -1,6 +1,4 @@
 from __future__ import annotations
-
-import os
 import sys
 import logging
 from datetime import datetime, timezone
@@ -13,28 +11,9 @@ import wmill
 logging.basicConfig(
     stream=sys.stdout,
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-
-class IncomingPayload(BaseModel):
-    alert_id: str
-    service: str = "unknown"
-    severity: str = "unknown"
-    message: str
-    host: str
-    triggered_at: str | int
-
-    @field_validator('triggered_at', mode='before')
-    @classmethod
-    def clean_value(cls, v: Any) -> str:
-        if isinstance(v, int):
-            if v == 1742046720:
-                return "2025-03-15T14:32:00Z"
-            dt = datetime.fromtimestamp(v, tz=timezone.utc)
-            return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-        return str(v)
 
 
 class AIIncidentAnalysis(BaseModel):
@@ -80,9 +59,9 @@ def format_result(
 
 
 def call_openai_completion(
-    validated_payload: IncomingPayload,
+    payload: dict[str, Any],
     api_key: str,
-    model: str = "gpt-4o-mini",
+    model: str = "gpt-5-mini",
 ) -> AIIncidentAnalysis:
     """Invokes OpenAI chat completions using the OpenAI SDK structured outputs."""
     client = OpenAI(api_key=api_key)
@@ -98,10 +77,10 @@ def call_openai_completion(
     )
 
     user_content = (
-        f"Alert ID: {validated_payload.alert_id}\n"
-        f"Host: {validated_payload.host}\n"
-        f"Triggered At: {validated_payload.triggered_at}\n"
-        f"Raw Message / Stack Trace:\n{validated_payload.message}"
+        f"Alert ID: {payload['alert_id']}\n"
+        f"Host: {payload['host']}\n"
+        f"Triggered At: {payload['triggered_at']}\n"
+        f"Raw Message / Stack Trace:\n{payload['message']}"
     )
 
     completion = client.beta.chat.completions.parse(
@@ -111,6 +90,7 @@ def call_openai_completion(
             {"role": "user", "content": user_content},
         ],
         response_format=AIIncidentAnalysis,
+        reasoning_effort="minimal",
     )
     return completion.choices[0].message.parsed
 
@@ -120,18 +100,12 @@ def main(
     model: str | None = None,
     dry_run: bool = False,
 ) -> dict[str, Any]:
-    try:
-        validated_payload = IncomingPayload(**payload)
-    except ValidationError as e:
-        return {"wm_failure": e.errors(include_url=False)}
-    
     provider_name = "OpenAI"
     logger.info(
-        f"Received alert {validated_payload.alert_id} (service: {validated_payload.service}, severity: {validated_payload.severity}) - Using provider: {provider_name}"
+        f"Received alert {payload['alert_id']} (service: {payload['service']}, severity: {payload['severity']}) - Using provider: {provider_name}"
     )
 
-    # Determine default model and API key based on provider
-    selected_model = model or "gpt-4o-mini"
+    selected_model = model or "gpt-5-mini"
     api_key = wmill.get_variable("u/admin/open_ai_key")
     if not api_key and wmill is not None:
         try:
@@ -141,37 +115,37 @@ def main(
 
     if dry_run or not api_key:
         if not api_key:
-            logger.info(f"No {provider_name} API key provided or found. Falling back to dry-run mode.")
+            logger.info(
+                f"No {provider_name} API key provided or found. Falling back to dry-run mode."
+            )
         logger.info("Executing in DRY RUN mode")
 
         inferred_service = (
-            validated_payload.service
-            if validated_payload.service != "unknown"
-            else "payments-api"
+            payload['service'] if payload['service'] != "unknown" else "payments-api"
         )
         inferred_severity = (
-            validated_payload.severity
-            if validated_payload.severity in ["critical", "warning", "info"]
+            payload['severity']
+            if payload['severity'] in ["critical", "warning", "info"]
             else "critical"
         )
-        msg_summary = validated_payload.message.split("\n")[0][:100]
+        msg_summary = payload['message'].split("\n")[0][:100]
 
         return format_result(
-            alert_id=validated_payload.alert_id,
+            alert_id=payload['alert_id'],
             service=inferred_service,
             severity=inferred_severity,
             message=f"[DRY RUN] Inferred issue in {inferred_service}: {msg_summary}",
-            summary=f"[DRY RUN] Simulated diagnostic analysis of incident on {validated_payload.host}.",
+            summary=f"[DRY RUN] Simulated diagnostic analysis of incident on {payload['host']}.",
             probable_cause=f"[DRY RUN] Potential error detected in {inferred_service} log trace.",
-            host=validated_payload.host,
-            triggered_at=validated_payload.triggered_at,
+            host=payload['host'],
+            triggered_at=payload['triggered_at'],
             dry_run=True if not api_key else dry_run,
         )
 
     # Live AI invocation
     try:
         parsed = call_openai_completion(
-            validated_payload=validated_payload,
+            payload=payload,
             api_key=api_key,
             model=selected_model,
         )
@@ -179,16 +153,18 @@ def main(
         logger.error(f"{provider_name} API call failed: {e}")
         return {"wm_failure": f"{provider_name} API call failed: {str(e)}"}
 
-    logger.info(f"AI analysis completed via {provider_name}: service={parsed.service}, severity={parsed.severity}")
+    logger.info(
+        f"AI analysis completed via {provider_name}: service={parsed.service}, severity={parsed.severity}"
+    )
 
     return format_result(
-        alert_id=validated_payload.alert_id,
+        alert_id=payload['alert_id'],
         service=parsed.service,
         severity=parsed.severity,
         message=parsed.message,
         summary=parsed.summary,
         probable_cause=parsed.probable_cause,
-        host=validated_payload.host,
-        triggered_at=validated_payload.triggered_at,
+        host=payload['host'],
+        triggered_at=payload['triggered_at'],
         dry_run=dry_run,
     )
