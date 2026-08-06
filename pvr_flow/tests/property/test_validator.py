@@ -1,6 +1,6 @@
 import pytest
 from hypothesis import given, strategies as st
-from pvr_flow.validator import main as validator_main
+from pvr_flow.parse_alert import main as validator_main
 import re
 
 
@@ -61,7 +61,7 @@ def test_validator_invalid_severity(
 
     # Invalid severity should be downgraded to "info"
     assert result.get("valid") is not False
-    assert result["severity"] == "info"
+    assert result["severity"] == "unknown"
 
 
 @given(

@@ -1,6 +1,6 @@
 import pytest
 from hypothesis import given, strategies as st
-from pvr_flow.classify import main as classify_main
+from pvr_flow.classify_script import main as classify_main
 
 
 @given(

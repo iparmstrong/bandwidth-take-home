@@ -1,5 +1,5 @@
 import pytest
-from pvr_flow.classify import main
+from pvr_flow.classify_script import main
 
 
 def test_classify_critical():

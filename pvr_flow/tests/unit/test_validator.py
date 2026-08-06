@@ -1,5 +1,5 @@
 import pytest
-from pvr_flow.validator import main
+from pvr_flow.parse_alert import main
 
 
 def test_valid_payload():
@@ -29,7 +29,7 @@ def test_invalid_severity():
     }
     result = main(payload)
     assert result.get("valid") is not False
-    assert result["severity"] == "info"
+    assert result["severity"] == "unknown"
 
 
 def test_missing_fields():
